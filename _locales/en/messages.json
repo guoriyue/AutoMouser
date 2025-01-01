@@ -1,0 +1,50 @@
+{
+    "extensionName": {
+        "message": "Selenium-rfc-recorder"
+    },
+    "extensionDescription": {
+        "message": "Chrome extension for recording your test run!"
+    },
+    "ctxMenu_SuccessConditionMain": {
+    	"message": "Record success condition"
+    },
+    "ctxMenu_SuccessCondition_Equals": {
+    	"message": "Content equals..."
+    },
+        "ctxMenu_SuccessCondition_Equals_prompt": {
+        "message": "Content element equals: "
+        },
+    "ctxMenu_SuccessCondition_Contains": {
+    	"message": "Content contains..."
+    },
+        "ctxMenu_SuccessCondition_Contains_prompt": {
+            "message": "Content element contains: "
+        },
+    "ctxMenu_RecStateStart": {
+        "message": "Start recording..."
+    },
+    "ctxMenu_RecStateStop": {
+        "message": "Stop recording"
+    },
+    "ctxMenu_ChangeLastXpathAction": {
+       "message": "Change last Xpath action" 
+    },
+    "ctxMenu_RemoveLastAction": {
+        "message": "Remove last action"
+    },
+    "ctxMenu_ChangeXpathElementExtrator": {
+        "message": "Change xpath order..."
+    },
+    "ctxMenu_ShowXpathSelectedElement": {
+        "message": "Show Xpath of selected element"
+    },
+    "onStopRequest_msg": {
+        "message": "Have you finished?"
+    },
+    "onStopRequest_noSuccessCondition_msg": {
+        "message": "No successCondition for last browserAction. Click OK to abort, CANCEL to continue"
+    },
+    "noXpathForElement_msg": {
+        "message": "No Xpath found for this element!"
+    }
+}

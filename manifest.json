@@ -1,0 +1,29 @@
+{
+    "manifest_version": 2,
+    "name": "AutoMouser",
+    "version": "1.0",
+    "default_locale": "en",
+    "description": "AutoMouser automatically generates Selenium test code from your mouse movements, capturing every click, drag, and hover to streamline your workflow and build robust, repeatable tests.",
+    "permissions": ["activeTab", "gcm", "notifications", "contextMenus", "history", "downloads"],
+    "background": {
+        "scripts": ["background.js"]
+    },
+    "content_scripts": [
+        {
+            "persistent": false,
+            "matches": ["<all_urls>"],
+            "js": ["content.js"],
+            "all_frames": true
+        }
+    ],
+    "icons": {
+        "16": "icon.png",
+        "32": "icon.png",
+        "48": "icon.png",
+        "64": "icon.png",
+        "128": "icon.png"
+    },
+    "browser_action": {
+        "default_icon": "icon.png"
+    }
+}
