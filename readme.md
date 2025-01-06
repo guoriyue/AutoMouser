@@ -4,7 +4,7 @@
   <img src="icon.png" alt="Icon" width="256">
 </p>
 
-AutoMouser is a Chrome extension that intelligently tracks user interactions and automatically generates Selenium test code using OpenAI's GPT model. It simplifies the process of creating automated tests by recording your browser actions and converting them into robust, maintainable Python Selenium scripts.
+AutoMouser is a Chrome extension that intelligently tracks user interactions and automatically generates Selenium test code using OpenAI's GPT model. It simplifies the process of creating automated tests by recording your browser actions and converting them into robust, maintainable Python Selenium scripts. This project is built upon the work in [bitmarte/selenium-rfc-chrome-extension](https://github.com/bitmarte/selenium-rfc-chrome-extension).
 
 ## Features
 
