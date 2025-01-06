@@ -32,7 +32,7 @@ AutoMouser is a Chrome extension that intelligently tracks user interactions and
 4. Two files will be downloaded:
    - `tracking_log.json`: Raw interaction data
    - `selenium_test.py`: Generated Selenium test script
-   You can check and run the generated Selenium code in your Python environment
+5. Check and run the generated Selenium code in your Python environment!
 
 ## Contributing
 
