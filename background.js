@@ -410,6 +410,11 @@ function pushAction(a) {
     });
 }
 
+function fixXpathDoubleQuoteIssues(xpathString) {
+    // avoid unescaped double quotes in Python strings
+    return xpathString.replace(/(\[@[a-zA-Z]+)="([^"]*)"]/g, "$1='$2']");
+}
+
 function convertToSelenium(trackingLog) {
     // Create xpath mapping
     const xpathMap = {};
@@ -427,8 +432,9 @@ function convertToSelenium(trackingLog) {
             
             // Store original xpaths in map and replace with placeholders
             simplifiedAction.xpath = xpathArray.map(xpath => {
+                const fixedXpath = fixXpathDoubleQuoteIssues(xpath);
                 const placeholder = `XPATH-#${xpathCounter}`;
-                xpathMap[placeholder] = xpath;
+                xpathMap[placeholder] = fixedXpath;
                 xpathCounter++;
                 return placeholder;
             });
