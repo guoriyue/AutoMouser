@@ -1,0 +1,16 @@
+*~
+*.err
+*.log
+*.env
+._*
+.cache
+.fseventsd
+.DocumentRevisions*
+.DS_Store
+.TemporaryItems
+.Trashes
+Thumbs.db
+
+dist
+node_modules
+package-lock.json

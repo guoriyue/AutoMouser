@@ -19,7 +19,10 @@ AutoMouser is a Chrome extension that intelligently tracks user interactions and
 ## Installation
 
 1. Clone this repository or download the source code
-2. Replace `OPENAI_API_KEY` in `background.js` with your actual API key and customize the prompt template in `SELENIUM_PROMPT` if needed
+2. Create a `.env` file in the root directory and add your OpenAI API key:
+   ```
+   OPENAI_API_KEY=your_openai_api_key
+   ```
 3. Open Chrome and navigate to `chrome://extensions/`
 4. Enable "Developer mode" in the top right
 5. Click "Load unpacked" and select the extension directory

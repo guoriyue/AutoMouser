@@ -1,4 +1,34 @@
-const OPENAI_API_KEY = "OPENAI_API_KEY";
+let OPENAI_API_KEY = null;
+
+// Load the .env file
+fetch('./.env')
+  .then((response) => {
+    if (!response.ok) {
+      console.error("Error: Failed to load .env file");
+      return;
+    }
+    return response.text();
+  })
+  .then((data) => {
+    const envVariables = {};
+    data.split('\n').forEach((line) => {
+      const [key, value] = line.split('=');
+      if (key && value) {
+        envVariables[key.trim()] = value.trim();
+      }
+    });
+
+    OPENAI_API_KEY = envVariables.OPENAI_API_KEY;
+
+    if (!OPENAI_API_KEY) {
+      console.error("Error: OPENAI_API_KEY is not set in the .env file");
+    } else {
+      console.log("API Key loaded successfully.");
+    }
+  })
+  .catch((error) => {
+    console.error("Error loading .env file:", error);
+  });
 
 const SELENIUM_PROMPT = `Task Description: You are an advanced AI specialized in generating high-quality, robust Selenium automation scripts. Your task is to generate a Python Selenium script that mimics a series of user interactions based on the provided list of browser actions, XPaths, and input data.
 
