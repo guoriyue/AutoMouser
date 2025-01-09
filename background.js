@@ -30,25 +30,16 @@ fetch('./.env')
     console.error("Error loading .env file:", error);
   });
 
-const SELENIUM_PROMPT = `
-Task Description: You are an advanced AI specialized in generating high-quality, robust Selenium automation scripts. Your task is to generate a Python Selenium script that mimics a series of user interactions based on the provided list of browser actions, XPaths, and input data.
+const SELENIUM_PROMPT = `Task Description: You are an advanced AI specialized in generating high-quality, robust Selenium automation scripts. Your task is to generate a Python Selenium script that mimics a series of user interactions based on the provided list of browser actions, XPaths, and input data.
 
 The generated script must:
 - Use Selenium's Python bindings
 - Handle all interactions in a stable and reliable way
 - Include appropriate waits and error handling
 - Simulate realistic user behavior
-- Handle page navigations properly
+- Handle page navigation and form submissions properly
 
-Action Types Overview:
-1. WINDOW_RESIZE: Adjust browser window dimensions
-2. GO_TO_URL: Direct page navigation
-3. CLICK: Element interactions that may trigger navigation
-4. INPUT: Character-by-character typing simulation
-5. SET: Direct value setting (like paste operations)
-6. SCROLL: Page scrolling operations
-
-Example Input Format:
+Input Format Example:
 \`\`\`json
 [
   {
@@ -65,45 +56,45 @@ Example Input Format:
     "currentUrl": "https://example.com/"
   },
   {
-    "browserAction": "CLICK",
-    "xpath": [
-      "//button[@id='login-btn']",
-      "/html/body/div/nav/button[1]"
-    ],
-    "linkInfo": {
-      "href": "https://example.com/login",
-      "target": "",
-      "onclick": false
-    },
-    "timestamp": 1736427821311,
-    "currentUrl": "https://example.com/"
-  },
-  {
-    "browserAction": "GO_TO_URL",
-    "url": "https://example.com/login",
-    "triggeredBy": "click",
-    "timestamp": 1736427821312,
-    "currentUrl": "https://example.com/"
-  },
-  {
     "browserAction": "INPUT",
     "xpath": [
-      "//input[@id='username']",
-      "/html/body/div/form/input[1]"
+      "//input[@name='search']",
+      "/html/body/div/form/input"
     ],
-    "content": "test",
-    "timestamp": 1736427830000,
-    "currentUrl": "https://example.com/login"
+    "content": "test query",
+    "timestamp": 1736427820000,
+    "currentUrl": "https://example.com/"
   },
   {
     "browserAction": "SET",
     "xpath": [
-      "//input[@id='username']",
-      "/html/body/div/form/input[1]"
+      "//input[@name='search']",
+      "/html/body/div/form/input"
     ],
-    "content": "testuser",
-    "timestamp": 1736427830100,
-    "currentUrl": "https://example.com/login"
+    "content": "test query",
+    "timestamp": 1736427820100,
+    "currentUrl": "https://example.com/"
+  },
+  {
+    "browserAction": "CLICK",
+    "xpath": [
+      "//button[@type='submit']",
+      "/html/body/div/form/button"
+    ],
+    "timestamp": 1736427821000,
+    "currentUrl": "https://example.com/",
+    "linkInfo": {
+      "href": "https://example.com/search?q=test+query",
+      "target": "",
+      "onclick": false
+    }
+  },
+  {
+    "browserAction": "GO_TO_URL",
+    "url": "https://example.com/search?q=test+query",
+    "triggeredBy": "click",
+    "timestamp": 1736427821001,
+    "currentUrl": "https://example.com/"
   }
 ]
 \`\`\`
@@ -112,26 +103,31 @@ Key Action Handling Guidelines:
 
 1. Page Navigation:
    - Every action includes a currentUrl indicating where it should be performed
-   - Click-triggered navigations are recorded as:
-     * A CLICK action with linkInfo
-     * A corresponding GO_TO_URL action with triggeredBy: "click"
-   - ONLY implement the CLICK action; ignore the GO_TO_URL with triggeredBy: "click"
-   - Wait for navigation to complete after clicks with linkInfo
+   - Before each action, verify browser is on the correct page
+   - For click-triggered navigations:
+     * When CLICK action has linkInfo, wait for navigation after click
+     * Ignore following GO_TO_URL action with triggeredBy: "click"
 
-2. Input Fields:
-   - INPUT and SET are two distinct operations on form fields
-   - INPUT: Simulates human typing (character by character)
-   - SET: Directly sets the full value (like paste operations)
-   - When both appear for the same field in sequence, implement only the final SET
-   - Both should clear the field before entering new content
+2. Input Field Handling:
+   - INPUT: Simulates human typing (character by character with delays)
+   - SET: Directly sets value (like paste operations)
+   - Form Submission:
+     * For search/form inputs, check if submission is needed
+     * After input completion, either:
+       - Click submit button if found
+       - Press Enter key if in a form field
+     * Wait for navigation if URL changes
 
-3. Action Sequence:
-   - Start by navigating to the first action's currentUrl
-   - Verify current page matches expected URL before each action
-   - Respect timestamps for realistic timing simulation
-   - Skip redundant actions (like INPUT followed by SET on same field)
+3. General Action Sequence:
+   - Navigate to initial URL
+   - Resize window if specified
+   - For each action:
+     * Verify current page
+     * Execute action with appropriate waits
+     * Handle any resulting navigation
+     * Skip redundant actions (e.g., INPUT followed by SET on same field)
 
-Expected Output Format:
+Output Structure:
 \`\`\`python
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -154,9 +150,53 @@ def verify_url(driver, expected_url, timeout=10):
 
 def wait_for_navigation(driver, timeout=10):
     """Wait for page load to complete."""
-    WebDriverWait(driver, timeout).until(
-        lambda driver: driver.execute_script('return document.readyState') == 'complete'
-    )
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda driver: driver.execute_script('return document.readyState') == 'complete'
+        )
+    except Exception as e:
+        print(f"Navigation wait timeout: {e}")
+
+def handle_form_submission(driver, element, xpath, timeout=10):
+    """Try to submit a form after input."""
+    try:
+        current_url = driver.current_url
+        
+        # First try to find and click a submit button
+        submit_patterns = [
+            f"//form[contains(., '{xpath}')]//button[@type='submit']",
+            f"//form[contains(., '{xpath}')]//input[@type='submit']",
+            f"{xpath}/ancestor::form//button",
+            f"{xpath}/following::button[contains(@class, 'search')]",
+            "//button[@type='submit']",
+            "//input[@type='submit']"
+        ]
+        
+        for pattern in submit_patterns:
+            try:
+                submit = WebDriverWait(driver, 1).until(
+                    EC.element_to_be_clickable((By.XPATH, pattern))
+                )
+                submit.click()
+                break
+            except:
+                continue
+        
+        # If no submit button found or clicked, try pressing Enter
+        if driver.current_url == current_url:
+            element.send_keys(Keys.ENTER)
+        
+        # Wait for potential navigation
+        try:
+            WebDriverWait(driver, timeout).until(
+                lambda driver: driver.current_url != current_url
+            )
+            wait_for_navigation(driver)
+        except:
+            pass  # Not all form submissions result in navigation
+            
+    except Exception as e:
+        print(f"Form submission handling failed: {e}")
 
 def click_element(driver, xpaths, link_info=None, timeout=10):
     """Click element and handle potential navigation."""
@@ -173,6 +213,7 @@ def click_element(driver, xpaths, link_info=None, timeout=10):
             return True
         except Exception as e:
             continue
+    print("No clickable element found")
     return False
 
 def input_text(driver, xpaths, text, simulate_typing=True, timeout=10):
@@ -191,9 +232,13 @@ def input_text(driver, xpaths, text, simulate_typing=True, timeout=10):
             else:
                 element.send_keys(text)
             
+            # Handle potential form submission
+            handle_form_submission(driver, element, xpath)
             return True
+            
         except Exception as e:
             continue
+    print("No input field found")
     return False
 
 def execute_actions(driver):
@@ -233,6 +278,8 @@ def execute_actions(driver):
             input_text(driver, action['xpath'], action['content'], True)
         elif action['browserAction'] == "SET":
             input_text(driver, action['xpath'], action['content'], False)
+        elif action['browserAction'] == "SCROLL":
+            driver.execute_script(f"window.scrollTo({action['left']}, {action['top']});")
         
         time.sleep(0.5)  # Small delay between actions
         previous_action = action
@@ -245,7 +292,8 @@ if __name__ == "__main__":
         driver.quit()
 \`\`\`
 
-Convert the following browser tracking log to a Python Selenium script:`;
+Convert the following browser tracking log to a Python Selenium script:
+`
 
 window.gotourl_browseraction = "GO_TO_URL";
 
