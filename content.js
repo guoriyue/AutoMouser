@@ -43,18 +43,33 @@ function getXpaths(a) {
     return d;
 }
 
-document.addEventListener("click", function(a) {
+document.addEventListener("click", function(event) {
     chrome.runtime.sendMessage({
         message: "recState"
     }, function(b) {
         if (b.recState) {
-            a = a || window.event;
-            var c = a.target || a.srcElement;
-            var d = getXpaths(c);
-            console.log("click on xpath: " + d);
+            event = event || window.event;
+            var target = event.target || event.srcElement;
+            var xpaths = getXpaths(target);
+            
+            // 獲取點擊元素的連結資訊
+            var linkInfo = null;
+            var clickedLink = target.closest('a');  // 找到最近的 a 標籤
+            if (clickedLink) {
+                linkInfo = {
+                    href: clickedLink.href,
+                    target: clickedLink.target,
+                    onclick: clickedLink.hasAttribute('onclick')
+                };
+            }
+            
+            console.log("click on xpath: " + xpaths);
             chrome.runtime.sendMessage({
                 message: "onClick",
-                xPath: d
+                xPath: xpaths,
+                linkInfo: linkInfo  // 添加連結資訊
+            }, function() {
+                // 不阻擋默認行為，讓連結正常運作
             });
         }
     });
