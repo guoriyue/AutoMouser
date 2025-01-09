@@ -588,16 +588,6 @@ function convertToSelenium(trackingLog) {
         type: 'application/json'  // Set correct MIME type for JSON
     });
 
-    chrome.downloads.download({
-        url: URL.createObjectURL(jsonBlob),
-        filename: 'tracking_log.json',
-        saveAs: true,
-        headers: [{  // Add headers to ensure proper file type
-            name: 'Content-Type',
-            value: 'application/json'
-        }]
-    });
-
     const requestBody = {
         model: "gpt-4o",
         messages: [
@@ -611,66 +601,213 @@ function convertToSelenium(trackingLog) {
             }
         ]
     };
+    
+    // Function to generate code and manage popup
+    function generateCodeWithPopup(jsonBlob, requestBody, xpathMap, OPENAI_API_KEY) {
+        // Create a small popup window with better styling
+        const popupHTML = `
+            <html>
+            <head>
+                <style>
+                    body {
+                        width: 300px;
+                        padding: 30px;
+                        text-align: center;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                        background: #f8f9fa;
+                        margin: 0;
+                        color: #2c3e50;
+                    }
+                    .container {
+                        background: white;
+                        border-radius: 12px;
+                        padding: 20px;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    h2 {
+                        margin: 0 0 15px 0;
+                        font-size: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                    }
+                    .spinner {
+                        width: 24px;
+                        height: 24px;
+                        border: 3px solid #e9ecef;
+                        border-top: 3px solid #3498db;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                    }
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    p {
+                        margin: 15px 0 0 0;
+                        color: #6c757d;
+                        font-size: 14px;
+                        line-height: 1.5;
+                    }
+                    .error {
+                        color: #dc3545;
+                        background: #fff5f5;
+                    }
+                    .error h2 {
+                        color: #dc3545;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2><div class="spinner"></div>Generating Code</h2>
+                    <p>Please wait while GPT processes your actions...</p>
+                </div>
+            </body>
+            </html>
+        `;
 
-    return fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify(requestBody)
-    })
-    .then(response => response.json())
-    .then(data => {
-        let pythonCode = data.choices[0].message.content;
-        
-        // Extract code between ```python and ``` markers if present
-        const codeMatch = pythonCode.match(/```python\n([\s\S]*?)```/);
-        if (codeMatch) {
-            pythonCode = codeMatch[1];
-        }
-        
-        // Replace placeholders with actual xpaths
-        Object.entries(xpathMap).forEach(([placeholder, xpath]) => {
-            pythonCode = pythonCode.replace(new RegExp(placeholder, 'g'), xpath);
+        const errorHTML = `
+            <html>
+            <head>
+                <style>
+                    body {
+                        width: 300px;
+                        padding: 30px;
+                        text-align: center;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                        background: #f8f9fa;
+                        margin: 0;
+                        color: #2c3e50;
+                    }
+                    .container {
+                        background: #fff5f5;
+                        border-radius: 12px;
+                        padding: 20px;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    }
+                    h2 {
+                        margin: 0 0 15px 0;
+                        color: #dc3545;
+                        font-size: 20px;
+                    }
+                    p {
+                        margin: 15px 0 0 0;
+                        color: #6c757d;
+                        font-size: 14px;
+                        line-height: 1.5;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2>❌ Error</h2>
+                    <p>Failed to generate code.<br>Check console for details.</p>
+                </div>
+            </body>
+            </html>
+        `;
+
+        chrome.windows.create({
+            url: 'data:text/html,' + encodeURIComponent(popupHTML),
+            type: 'popup',
+            width: 360,
+            height: 240
+        }, (popupWindow) => {
+    
+            const popupId = popupWindow.id;
+
+            fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Error generating code:', error);
+                    // Show error message with better styling
+                    chrome.windows.update(popupId, {
+                        url: 'data:text/html,' + encodeURIComponent(errorHTML)
+                    });
+                    chrome.downloads.download({
+                        url: URL.createObjectURL(jsonBlob),
+                        filename: 'tracking_log.json',
+                        saveAs: true,
+                        headers: [{  // Add headers to ensure proper file type
+                            name: 'Content-Type',
+                            value: 'application/json'
+                        }]
+                    });
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                let pythonCode = data.choices[0].message.content;
+
+                // Extract code between ```python and ``` markers if present
+                const codeMatch = pythonCode.match(/```python\n([\s\S]*?)```/);
+                if (codeMatch) {
+                    pythonCode = codeMatch[1];
+                }
+
+                // Replace placeholders with actual xpaths
+                Object.entries(xpathMap).forEach(([placeholder, xpath]) => {
+                    pythonCode = pythonCode.replace(new RegExp(placeholder, 'g'), xpath);
+                });
+
+                // Create a new file with the Python code
+                const blob = new Blob([pythonCode], { 
+                    type: 'application/x-python' // Set correct MIME type
+                });
+                
+                chrome.downloads.download({
+                    url: URL.createObjectURL(jsonBlob),
+                    filename: 'tracking_log.json',
+                    saveAs: true,
+                    headers: [{  // Add headers to ensure proper file type
+                        name: 'Content-Type',
+                        value: 'application/json'
+                    }]
+                });
+
+                chrome.downloads.download({
+                    url: URL.createObjectURL(blob),
+                    filename: 'selenium_test.py',
+                    saveAs: true
+                });
+
+                console.log('Generated Code:', pythonCode);
+            })
+            .catch(error => {
+                console.error('Error generating code:', error);
+                // Show error message with better styling
+                chrome.windows.update(popupId, {
+                    url: 'data:text/html,' + encodeURIComponent(errorHTML)
+                });
+                chrome.downloads.download({
+                    url: URL.createObjectURL(jsonBlob),
+                    filename: 'tracking_log.json',
+                    saveAs: true,
+                    headers: [{  // Add headers to ensure proper file type
+                        name: 'Content-Type',
+                        value: 'application/json'
+                    }]
+                });
+            })
+            .finally(() => {
+                setTimeout(() => {
+                    chrome.windows.remove(popupId);
+                }, 2000);
+            });
         });
-        
-        // Create a new file with the Python code
-        const blob = new Blob([pythonCode], { 
-            type: 'application/x-python'  // Set correct MIME type
-        });
-        
-        chrome.downloads.download({
-            url: URL.createObjectURL(blob),
-            filename: 'selenium_test.py',
-            saveAs: true,
-            headers: [{  // Add headers to ensure proper file type
-                name: 'Content-Type',
-                value: 'application/x-python'
-            }]
-        });
-        
-        return {
-            code: pythonCode,
-            xpathMap: xpathMap
-        };
-    })
-    .catch(error => {
-        console.error('Error converting to Selenium:', error);
-        // Still download the JSON in case of error with proper MIME type
-        const errorJsonBlob = new Blob([JSON.stringify(trackingLog, null, 2)], {
-            type: 'application/json'
-        });
-        chrome.downloads.download({
-            url: URL.createObjectURL(errorJsonBlob),
-            filename: 'tracking_log.json',
-            saveAs: true,
-            headers: [{
-                name: 'Content-Type',
-                value: 'application/json'
-            }]
-        });
-    });
+    }
+
+    generateCodeWithPopup(jsonBlob, requestBody, xpathMap, OPENAI_API_KEY);
 }
 
 function toggleRec() {
