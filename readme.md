@@ -41,4 +41,4 @@ AutoMouser is a Chrome extension that intelligently tracks user interactions and
 ## Contributing
 
 Contributions are welcome! Please feel free to submit pull requests, create issues, or suggest improvements.
-For any issues, please create an issue in the repository.
+For any questions, please create an issue in the repository.

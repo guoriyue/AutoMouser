@@ -42,7 +42,7 @@
         "message": "Have you finished?"
     },
     "onStopRequest_noSuccessCondition_msg": {
-        "message": "No successCondition for last browserAction. Click OK to abort, CANCEL to continue"
+        "message": "No successCondition for last browserAction. Click OK to stop recording and generate Selenium code, CANCEL to continue recording"
     },
     "noXpathForElement_msg": {
         "message": "No Xpath found for this element!"
