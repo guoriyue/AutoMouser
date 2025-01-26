@@ -6,7 +6,7 @@
     "description": "AutoMouser automatically generates Selenium test code from your mouse movements, capturing every click, drag, and hover to streamline your workflow and build robust, repeatable tests.",
     "permissions": ["activeTab", "gcm", "notifications", "contextMenus", "history", "downloads"],
     "background": {
-        "scripts": ["prompt.js", "background.js"]
+        "scripts": ["prompt.js", "background.js", "popup_manager.js", "llm_service.js"]
     },
     "content_scripts": [
         {
