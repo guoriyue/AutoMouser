@@ -1,4 +1,5 @@
 import { generateWithLLM } from './llm_service.js';
+import * as prompt from './prompt.js';
 
 export function generateCodeWithPopup(jsonBlob, requestBody, xpathMap, LLM_CONFIG) {
     const popupHTML = `
@@ -107,31 +108,44 @@ export function generateCodeWithPopup(jsonBlob, requestBody, xpathMap, LLM_CONFI
         type: 'popup',
         width: 360,
         height: 240
-    }, (popupWindow) => {
+    }, async (popupWindow) => {
         const popupId = popupWindow.id;
 
-        generateWithLLM(requestBody.messages, LLM_CONFIG, jsonBlob, popupId, errorHTML)
+        // Properly read the blob as text
+        const jsonStr = await blobToString(jsonBlob);
+
+        // Create properly formatted messages for the API
+        const promptContent = prompt.SELENIUM_PROMPT + JSON.stringify(JSON.parse(jsonStr), null, 2);
+        
+        const messages = [
+            { 
+                role: "system", 
+                content: "You are a helpful assistant that generates Selenium code based on browser actions."
+            },
+            { 
+                role: "user", 
+                content: promptContent
+            }
+        ];
+
+        generateWithLLM(messages, LLM_CONFIG, jsonStr, popupId, errorHTML)
             .then(pythonCode => {
                 Object.entries(xpathMap).forEach(([placeholder, xpath]) => {
                     pythonCode = pythonCode.replace(new RegExp(placeholder, 'g'), xpath);
                 });
 
-                const blob = new Blob([pythonCode], { 
-                    type: 'application/x-python'
-                });
+                // Create data URLs for downloads
+                const jsonDataUrl = 'data:application/json;base64,' + btoa(unescape(encodeURIComponent(jsonStr)));
+                const pythonDataUrl = 'data:application/x-python;base64,' + btoa(unescape(encodeURIComponent(pythonCode)));
                 
                 chrome.downloads.download({
-                    url: URL.createObjectURL(jsonBlob),
+                    url: jsonDataUrl,
                     filename: 'tracking_log.json',
-                    saveAs: true,
-                    headers: [{
-                        name: 'Content-Type',
-                        value: 'application/json'
-                    }]
+                    saveAs: true
                 });
 
                 chrome.downloads.download({
-                    url: URL.createObjectURL(blob),
+                    url: pythonDataUrl,
                     filename: 'selenium_test.py',
                     saveAs: true
                 });
@@ -142,4 +156,30 @@ export function generateCodeWithPopup(jsonBlob, requestBody, xpathMap, LLM_CONFI
                 }, 2000);
             });
     });
+}
+
+// Helper to convert a Blob to a string
+async function blobToString(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(blob);
+    });
+}
+
+// Export the functions that need to be accessible from background.js
+export function init() {
+  console.log('Popup manager initialized');
+  // Your initialization code
+}
+
+// Export other functions
+export function showPopup() {
+  // Your function code
+}
+
+// Non-exported functions are only available in this file
+function internalHelper() {
+  // Internal function
 } 

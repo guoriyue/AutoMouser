@@ -43,21 +43,81 @@ function getXpaths(a) {
     return d;
 }
 
-document.addEventListener("click", function(a) {
-    chrome.runtime.sendMessage({
-        message: "recState"
-    }, function(b) {
-        if (b.recState) {
-            a = a || window.event;
-            var c = a.target || a.srcElement;
-            var d = getXpaths(c);
-            console.log("click on xpath: " + d);
-            chrome.runtime.sendMessage({
-                message: "onClick",
-                xPath: d
-            });
-        }
+// Check if we're in an extension context before using Chrome APIs
+if (typeof chrome !== 'undefined' && chrome.runtime) {
+    // Make sure message listeners are defined before sending messages
+    document.addEventListener('DOMContentLoaded', function() {
+        // Now it's safe to use Chrome APIs
+        chrome.runtime.sendMessage({
+            message: "recState"
+        }, function(response) {
+            // Handle the response safely
+            if (chrome.runtime.lastError) {
+                console.error('Chrome runtime error:', chrome.runtime.lastError);
+                return;
+            }
+            
+            // Use response data if available
+            if (response) {
+                console.log('RecState response:', response);
+            }
+        });
     });
+} else {
+    console.warn('Chrome extension API not available in this context');
+}
+
+// Add error handling wrapper for all chrome API calls
+function safeSendMessage(message, callback) {
+    try {
+        if (chrome.runtime && chrome.runtime.sendMessage) {
+            chrome.runtime.sendMessage(message, function(response) {
+                if (chrome.runtime.lastError) {
+                    console.log('Chrome runtime error:', chrome.runtime.lastError.message);
+                    return;
+                }
+                if (callback && typeof callback === 'function') {
+                    callback(response);
+                }
+            });
+        } else {
+            console.log('Chrome runtime API not available');
+        }
+    } catch (error) {
+        console.log('Error sending message:', error);
+        // Attempt to reconnect or handle the error gracefully
+    }
+}
+
+// Use debounce to reduce frequent API calls
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+// Wrap all event listeners with try-catch and use the safe send function
+document.addEventListener("click", function(a) {
+    try {
+        safeSendMessage({
+            message: "recState"
+        }, function(b) {
+            if (b && b.recState) {
+                a = a || window.event;
+                var c = a.target || a.srcElement;
+                var d = getXpaths(c);
+                console.log("click on xpath: " + d);
+                safeSendMessage({
+                    message: "onClick",
+                    xPath: d
+                });
+            }
+        });
+    } catch (error) {
+        console.log('Error in click handler:', error);
+    }
 });
 
 document.addEventListener("dblclick", function(a) {
@@ -139,25 +199,26 @@ document.addEventListener("scroll", function(a) {
 // });
 
 // Add input event listener with immediate capture
-document.addEventListener("input", function(event) {
-    chrome.runtime.sendMessage({
-        message: "recState"
-    }, function(b) {
-        if (b.recState) {
-            const target = event.target || event.srcElement;
-            const xpaths = getXpaths(target);
-            var inputValue = target.value || target.textContent || '';
-            
-            // Force immediate logging of every character
-            console.log(`Input value (input event) on xpath: ${xpaths} | content: ${inputValue}`);
-            chrome.runtime.sendMessage({
-                message: "onInput",
-                xPath: xpaths,
-                content: inputValue
-            });
-        }
-    });
-}, true); // Added 'true' for event capture phase
+document.addEventListener("input", debounce(function(event) {
+    try {
+        safeSendMessage({
+            message: "recState"
+        }, function(response) {
+            if (response && response.recState) {
+                var target = event.target || event.srcElement;
+                var xpaths = getXpaths(target);
+                console.log("input on xpath: " + xpaths + " | content: " + target.value);
+                safeSendMessage({
+                    message: "onInput",
+                    xPath: xpaths,
+                    content: target.value
+                });
+            }
+        });
+    } catch (error) {
+        console.log('Error in input handler:', error);
+    }
+}, 100)); // Debounce by 100ms
 
 // Add keyup event listener as backup for single character inputs
 document.addEventListener("keyup", function(event) {

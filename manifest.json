@@ -1,19 +1,36 @@
 {
-    "manifest_version": 2,
+    "manifest_version": 3,
     "name": "AutoMouser",
     "version": "1.0",
     "default_locale": "en",
     "description": "AutoMouser automatically generates Selenium test code from your mouse movements, capturing every click, drag, and hover to streamline your workflow and build robust, repeatable tests.",
-    "permissions": ["activeTab", "gcm", "notifications", "contextMenus", "history", "downloads"],
+    "permissions": ["activeTab", "gcm", "notifications", "contextMenus", "history", "downloads", "tabs"],
     "background": {
-        "scripts": ["prompt.js", "background.js", "popup_manager.js", "llm_service.js"]
+        "service_worker": "background.js",
+        "type": "module"
     },
     "content_scripts": [
         {
-            "persistent": false,
             "matches": ["<all_urls>"],
+            "exclude_matches": [
+                "*://*.google.com/search*", 
+                "*://*.google.com/_/chrome/newtab*"
+            ],
             "js": ["content.js"],
-            "all_frames": true
+            "all_frames": true,
+            "run_at": "document_end"
+        },
+        {
+            "matches": ["*://*.google.com/search*"],
+            "js": ["lib/special_sites/google_content.js"],
+            "all_frames": false,
+            "run_at": "document_end"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": ["lib/*"],
+            "matches": ["<all_urls>"]
         }
     ],
     "icons": {
@@ -23,7 +40,7 @@
         "64": "icon.png",
         "128": "icon.png"
     },
-    "browser_action": {
+    "action": {
         "default_icon": "icon.png"
     }
 }

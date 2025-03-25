@@ -6,6 +6,14 @@
 
 AutoMouser is a Chrome extension that turns your browser actions into reusable Selenium test scripts with just one AI call. Unlike typical web automation tools that rely on constant AI interaction, AutoMouser generates a complete, standalone Python script that you can run anytime, anywhere - no further AI calls needed.
 
+## Demo
+
+![Demo](demo/automouser.gif)
+
+In this demo video, I've recorded a simple scenario of searching for "hello world" on Google.
+Please note that it may take some time while waiting for the LLM's response, so you can attend to other tasks during this period.
+The generated script from this demo is available at [demo/generated.py](demo/generated.py).
+
 ## What Makes Us Different?
 
 Most web automation tools using AI require constant communication with large language models - every time you run a test, you're making API calls. AutoMouser is different:

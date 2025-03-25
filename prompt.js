@@ -1,4 +1,13 @@
-const SELENIUM_PROMPT = `Task Description: You are an advanced AI specialized in generating high-quality, robust Selenium automation scripts. Your task is to generate a Python Selenium script that mimics a series of user interactions based on the provided list of browser actions, XPaths, and input data.
+// Export any constants, functions, or objects needed by other modules
+export const PROMPTS = {
+  // Your prompt templates
+};
+
+export function generatePrompt(data) {
+  // Your function code
+}
+
+export const SELENIUM_PROMPT = `Task Description: You are an advanced AI specialized in generating high-quality, robust Selenium automation scripts. Your task is to generate a Python Selenium script that mimics a series of user interactions based on the provided list of browser actions, XPaths, and input data.
 
 The generated script must:
 - Use Selenium's Python bindings.
