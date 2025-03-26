@@ -28,17 +28,36 @@ const MODEL_CONFIGS = {
         parseResponse: (data) => data.choices[0]?.message?.content || '',
     },
     'deepseek': {
-        endpoint: 'https://api.deepseek.com/chat/completions',
+        endpoint: 'https://api.deepseek.com/v1/chat/completions',
         headers: (apiKey) => ({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,
         }),
         prepareBody: (messages) => ({
-            model: 'deepseek-chat',
+            model: 'deepseek-coder',
             messages: messages,
+            temperature: 0.2,
+            max_tokens: 4000,
             stream: false,
         }),
-        parseResponse: (data) => data.choices[0]?.message?.content || '',
+        parseResponse: (data) => {
+            console.log("Parsing Deepseek response:", data);
+            
+            if (!data) {
+                throw new Error("Empty response from Deepseek API");
+            }
+            
+            if (data.output && typeof data.output === 'string') {
+                return data.output.trim();
+            } else if (data.choices && data.choices.length > 0) {
+                return data.choices[0]?.message?.content || 
+                       data.choices[0]?.text || 
+                       '';
+            } else {
+                console.error("Unexpected Deepseek response format:", data);
+                throw new Error("Cannot parse Deepseek response - unexpected format");
+            }
+        },
     }
 };
 
@@ -158,15 +177,4 @@ function showErrorPopup(windowId, errorHTML) {
             });
         }
     });
-}
-
-// Export the functions that need to be accessible from background.js
-export function init() {
-    console.log('LLM service initialized');
-    // Your initialization code
-}
-
-// Export other functions
-export function processQuery(text) {
-    // Your function code
 }

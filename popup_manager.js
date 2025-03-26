@@ -167,19 +167,3 @@ async function blobToString(blob) {
         reader.readAsText(blob);
     });
 }
-
-// Export the functions that need to be accessible from background.js
-export function init() {
-  console.log('Popup manager initialized');
-  // Your initialization code
-}
-
-// Export other functions
-export function showPopup() {
-  // Your function code
-}
-
-// Non-exported functions are only available in this file
-function internalHelper() {
-  // Internal function
-} 

@@ -547,10 +547,6 @@ chrome.runtime.onInstalled.addListener(function() {
     buildContextMenu();
 });
 
-// Initialize services
-llmService.init();
-popupManager.init();
-
 // Add these new helper functions to create popups for user input and info display
 function createInputPopup(title, defaultValue, callback) {
     const popupHTML = `
